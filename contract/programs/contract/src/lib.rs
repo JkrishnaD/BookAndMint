@@ -5,7 +5,8 @@ declare_id!("CEtHi5avWuMShWEzDzXvhdFfk26cAsn6XMCaoDo1q8Ex");
 
 #[program]
 pub mod contract {
-    use anchor_lang::solana_program::program::invoke_signed;
+    use anchor_lang::solana_program::program::{ invoke, invoke_signed };
+    use anchor_lang::solana_program::system_instruction::transfer;
     use anchor_spl::token::{ mint_to, MintTo };
     use mpl_token_metadata::instructions::CreateV1Builder;
     use mpl_token_metadata::types::{ Creator, TokenStandard };
@@ -13,21 +14,40 @@ pub mod contract {
     use super::*;
 
     pub fn book_slot(ctx: Context<BookSlot>, time_slot: i64) -> Result<()> {
-        // 1. Validate slot index and availability
-        // let experience = &mut ctx.accounts.experience;
-        let experience_key = ctx.accounts.experience.key(); // ✅ Immutable borrow before
+        let experience_key = ctx.accounts.experience.key();
+        let experience_cost = ctx.accounts.experience.price_lamports;
 
-        let slot = ctx.accounts.experience.slots
+        // validate slot index and availability
+        let slot = &mut ctx.accounts.experience.slots
             .get_mut(time_slot as usize)
             .ok_or_else(|| error!(ErrorCode::InvalidTimeSlot))?;
-        require!(!slot.is_booked, ErrorCode::AlreadyBooked);
-
-        slot.is_booked = true;
 
         require!(!slot.is_booked, ErrorCode::AlreadyBooked);
+
+        require!(
+            **ctx.accounts.user.lamports.borrow() >= experience_cost,
+            ErrorCode::InsufficientFunds
+        );
+        // transfer the price from user to organiser
+        let transfer_ix = transfer(
+            &ctx.accounts.user.key(),
+            &ctx.accounts.organiser.key(),
+            experience_cost
+        );
+
+        invoke(
+            &transfer_ix,
+            &[
+                ctx.accounts.user.to_account_info(),
+                ctx.accounts.organiser.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ]
+        )?;
+
+        // update the slot to booked
         slot.is_booked = true;
 
-        // 2. Fill Reservation account
+        // fill Reservation account
         let reservation = &mut ctx.accounts.reservation;
         reservation.experience_id = experience_key;
         reservation.user = ctx.accounts.user.key();
@@ -37,7 +57,7 @@ pub mod contract {
         reservation.end_time = slot.end_time;
         reservation.is_active = true;
 
-        // 3. Mint NFT to user
+        // mint NFT to user
         let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), MintTo {
             mint: ctx.accounts.mint.to_account_info(),
             to: ctx.accounts.user_nft_account.to_account_info(),
@@ -45,7 +65,7 @@ pub mod contract {
         });
         mint_to(cpi_ctx, 1)?;
 
-        // 4. Create Metaplex Metadata account for the NFT
+        // create Metaplex Metadata account for the NFT
         let creators = vec![Creator {
             address: ctx.accounts.user.key(),
             verified: true,
@@ -134,6 +154,8 @@ pub struct BookSlot<'info> {
     )]
     pub user_nft_account: Account<'info, TokenAccount>,
 
+    pub organiser: SystemAccount<'info>,
+
     pub token_program: Program<'info, Token>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -159,6 +181,7 @@ pub struct Experience {
     pub name: String,
     pub location: String,
     pub slots: Vec<TimeSlot>,
+    pub price_lamports: u64,
 }
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -189,4 +212,6 @@ pub enum ErrorCode {
     InvalidTimeSlot,
     #[msg("The time slot is already booked.")]
     AlreadyBooked,
+    #[msg("Insufficient funds")]
+    InsufficientFunds,
 }

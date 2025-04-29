@@ -14,19 +14,22 @@ pub mod contract {
 
     pub fn book_slot(ctx: Context<BookSlot>, time_slot: i64) -> Result<()> {
         // 1. Validate slot index and availability
-        let experience = &mut ctx.accounts.experience;
+        // let experience = &mut ctx.accounts.experience;
+        let experience_key = ctx.accounts.experience.key(); // ✅ Immutable borrow before
 
-        let slot = &mut experience.slots
+        let slot = ctx.accounts.experience.slots
             .get_mut(time_slot as usize)
-            .ok_or_else(|| error!(ErrorCode::InvalidTimeSlot))?
-            .clone();
+            .ok_or_else(|| error!(ErrorCode::InvalidTimeSlot))?;
+        require!(!slot.is_booked, ErrorCode::AlreadyBooked);
+
+        slot.is_booked = true;
 
         require!(!slot.is_booked, ErrorCode::AlreadyBooked);
         slot.is_booked = true;
 
         // 2. Fill Reservation account
         let reservation = &mut ctx.accounts.reservation;
-        reservation.experience_id = ctx.accounts.experience.key();
+        reservation.experience_id = experience_key;
         reservation.user = ctx.accounts.user.key();
         reservation.time_slot = time_slot;
         reservation.nft_mint = ctx.accounts.mint.key();

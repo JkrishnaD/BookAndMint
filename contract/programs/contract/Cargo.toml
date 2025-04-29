@@ -20,5 +20,4 @@ idl-build = ["anchor-spl/idl-build", "anchor-lang/idl-build"]
 anchor-lang = {version = "0.31.1",features = ["init-if-needed"]}
 anchor-spl = { version = "0.31.1", features = ["token", "associated_token"] }
 mpl-token-metadata = "5.1.0"
-solana-program = "2.2.1"
 

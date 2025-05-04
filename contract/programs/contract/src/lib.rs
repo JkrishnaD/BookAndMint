@@ -270,6 +270,7 @@ pub struct BookSlot<'info> {
 
 // context for creating an experience
 #[derive(Accounts)]
+#[instruction(title: String)]
 pub struct CreateExperience<'info> {
     #[account(mut)]
     pub organiser: Signer<'info>,
@@ -278,7 +279,7 @@ pub struct CreateExperience<'info> {
         init,
         payer = organiser,
         space = 8 + Experience::LEN,
-        seeds = [b"experience", organiser.key().as_ref()],
+        seeds = [b"experience", organiser.key().as_ref(), title.as_bytes()],
         bump
     )]
     pub experience: Account<'info, Experience>,

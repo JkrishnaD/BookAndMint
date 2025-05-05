@@ -414,6 +414,10 @@
               {
                 "kind": "account",
                 "path": "organiser"
+              },
+              {
+                "kind": "arg",
+                "path": "title"
               }
             ]
           }
@@ -425,11 +429,15 @@
       ],
       "args": [
         {
-          "name": "name",
+          "name": "title",
           "type": "string"
         },
         {
           "name": "location",
+          "type": "string"
+        },
+        {
+          "name": "description",
           "type": "string"
         },
         {
@@ -667,7 +675,7 @@
     },
     {
       "code": 6003,
-      "name": "NameTooLong",
+      "name": "TitleTooLong",
       "msg": "Name is too long"
     },
     {
@@ -702,12 +710,18 @@
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
             "type": "string"
           },
           {
             "name": "location",
-            "type": "string"
+            "type": {
+              "option": "string"
+            }
           },
           {
             "name": "price_lamports",
@@ -730,7 +744,7 @@
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "title",
             "type": "string"
           }
         ]

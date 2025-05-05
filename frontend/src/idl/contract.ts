@@ -420,6 +420,10 @@ export type Contract = {
               {
                 "kind": "account",
                 "path": "organiser"
+              },
+              {
+                "kind": "arg",
+                "path": "title"
               }
             ]
           }
@@ -431,11 +435,15 @@ export type Contract = {
       ],
       "args": [
         {
-          "name": "name",
+          "name": "title",
           "type": "string"
         },
         {
           "name": "location",
+          "type": "string"
+        },
+        {
+          "name": "description",
           "type": "string"
         },
         {
@@ -673,7 +681,7 @@ export type Contract = {
     },
     {
       "code": 6003,
-      "name": "nameTooLong",
+      "name": "titleTooLong",
       "msg": "Name is too long"
     },
     {
@@ -708,12 +716,18 @@ export type Contract = {
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
             "type": "string"
           },
           {
             "name": "location",
-            "type": "string"
+            "type": {
+              "option": "string"
+            }
           },
           {
             "name": "priceLamports",
@@ -736,7 +750,7 @@ export type Contract = {
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "title",
             "type": "string"
           }
         ]

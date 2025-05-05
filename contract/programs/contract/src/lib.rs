@@ -76,8 +76,8 @@ pub mod contract {
             .system_program(ctx.accounts.system_program.key())
             .spl_token_program(Some(ctx.accounts.token_program.key()))
             .sysvar_instructions(anchor_lang::solana_program::sysvar::instructions::ID)
-            .name(ctx.accounts.experience.name.clone())
-            .symbol(ctx.accounts.experience.location.clone())
+            .name(ctx.accounts.experience.title.clone())
+            .symbol(ctx.accounts.experience.location.clone().unwrap()) // since it is optional we use unwrap
             .uri(metadata_uri)
             .seller_fee_basis_points(0)
             .creators(creators)
@@ -114,24 +114,26 @@ pub mod contract {
     // function to create an experience
     pub fn create_experience(
         ctx: Context<CreateExperience>,
-        name: String,
+        title: String,
         location: String,
+        description: String,
         price_lamports: u64
     ) -> Result<()> {
         let experience = &mut ctx.accounts.experience;
 
-        require!(name.len() <= Experience::MAX_NAME_LEN, ErrorCode::NameTooLong);
+        require!(title.len() <= Experience::MAX_TITLE_LEN, ErrorCode::TitleTooLong);
         require!(location.len() <= Experience::MAX_LOCATION_LEN, ErrorCode::LocationTooLong);
 
         experience.organiser = ctx.accounts.organiser.key();
-        experience.name = name;
-        experience.location = location;
+        experience.title = title;
+        experience.description = description;
+        experience.location = Some(location);
         experience.price_lamports = price_lamports;
 
         emit!(ExperienceCreated {
             organiser: ctx.accounts.organiser.key(),
             experience: experience.key(),
-            name: experience.name.clone(),
+            title: experience.title.clone(),
         });
 
         Ok(())
@@ -373,16 +375,28 @@ pub struct UpdateReservation<'info> {
 #[account]
 pub struct Experience {
     pub organiser: Pubkey,
-    pub name: String,
-    pub location: String,
+    pub title: String,
+    pub description: String,
+    pub location: Option<String>,
     pub price_lamports: u64,
 }
 
 impl Experience {
-    pub const MAX_NAME_LEN: usize = 32;
+    pub const MAX_TITLE_LEN: usize = 32;
     pub const MAX_LOCATION_LEN: usize = 64;
+    pub const MAX_DESCRIPTION_LEN: usize = 256;
 
-    pub const LEN: usize = 8 + 32 + 4 + Self::MAX_NAME_LEN + 4 + Self::MAX_LOCATION_LEN + 8;
+    pub const LEN: usize =
+        8 + // discriminator
+        32 + // organiser
+        4 +
+        Self::MAX_TITLE_LEN + // title
+        4 +
+        Self::MAX_DESCRIPTION_LEN + // description
+        1 +
+        4 +
+        Self::MAX_LOCATION_LEN + // Option<String>
+        8; // price_lamports
 }
 
 #[account]
@@ -421,7 +435,7 @@ pub enum ErrorCode {
     #[msg("Insufficient funds")]
     InsufficientFunds,
     #[msg("Name is too long")]
-    NameTooLong,
+    TitleTooLong,
     #[msg("Location is too long")]
     LocationTooLong,
     #[msg("Invalid reservation")]
@@ -437,7 +451,7 @@ pub enum ErrorCode {
 pub struct ExperienceCreated {
     pub organiser: Pubkey,
     pub experience: Pubkey,
-    pub name: String,
+    pub title: String,
 }
 
 // event for reservation creation

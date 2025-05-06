@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { FC, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -13,16 +13,16 @@ import {
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 import AllExperiences from "./components/AllExperiences";
+import CreateExperience from "./components/createExperience";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 const App = () => {
   const network = "devnet";
-
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })],
     [network]
@@ -32,10 +32,21 @@ const App = () => {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <div style={{ padding: "20px" }}>
-            <WalletMultiButton />
-            <AllExperiences />
-          </div>
+          <Router>
+            <div style={{ padding: "20px" }}>
+              <WalletMultiButton />
+              <nav style={{ margin: "20px 0" }}>
+                <Link to="/" style={{ marginRight: "20px" }}>
+                  All Experiences
+                </Link>
+                <Link to="/create">Create Experience</Link>
+              </nav>
+              <Routes>
+                <Route path="/" element={<AllExperiences />} />
+                <Route path="/create" element={<CreateExperience />} />
+              </Routes>
+            </div>
+          </Router>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

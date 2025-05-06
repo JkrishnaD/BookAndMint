@@ -1,19 +1,23 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { AnchorProvider, Program, Idl, web3 } from "@coral-xyz/anchor";
-import idl from "../idl/contract.json"
+import idl from "../idl/contract.json";
 import { Contract } from "../idl/contract";
+import { Program, AnchorProvider, web3, setProvider, getProvider } from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
 
-const network = "https://api.devnet.solana.com";
-// export const PROGRAM_ID = new web3.PublicKey("Bby1nh85EANJJLoZnYpkofnvHX4hspQacwaBiMK9GcHJ");
+const network = "http://127.0.0.1:8899";
+
+const idl_string = JSON.stringify(idl);
+const idl_object = JSON.parse(idl_string);
+const programId = new PublicKey(idl.address);
 
 export const getPrograms = (wallet) => {
-    const connection = new Connection(network, "confirmed");
+    
+    const connection = new web3.Connection(network, "confirmed");
 
-    const provider = new AnchorProvider(connection, wallet, {
-        preflightCommitment: "processed",
-    });
+    const provider = new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
+    setProvider(provider);
 
-    const program = new Program(idl as Contract, provider);
-
+    const anchorProvider = getProvider();
+    const program = new Program<Contract>(idl_object, anchorProvider);
     return program;
-}
+};
+

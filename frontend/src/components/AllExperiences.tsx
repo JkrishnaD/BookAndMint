@@ -14,9 +14,9 @@ const AllExperiences = () => {
 
       setLoading(true);
       try {
-        const program = getPrograms(wallet.adapter);
-        console.log("experience", program.account);
+        const program = getPrograms(wallet);
         const allAccounts = await program.account.experience.all();
+        console.log("All experiences:", allAccounts);
         setExperiences(allAccounts);
       } catch (error) {
         console.error("Error fetching experiences:", error);

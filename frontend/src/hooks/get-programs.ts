@@ -3,7 +3,7 @@ import { Contract } from "../idl/contract";
 import { Program, AnchorProvider, web3, setProvider, getProvider } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
-const network = "http://127.0.0.1:8899";
+const network = "https://api.devnet.solana.com";
 
 const idl_string = JSON.stringify(idl);
 const idl_object = JSON.parse(idl_string);
@@ -13,7 +13,7 @@ export const getPrograms = (wallet) => {
     
     const connection = new web3.Connection(network, "confirmed");
 
-    const provider = new AnchorProvider(connection, wallet, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, wallet.adapter, AnchorProvider.defaultOptions());
     setProvider(provider);
 
     const anchorProvider = getProvider();

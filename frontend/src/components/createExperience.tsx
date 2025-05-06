@@ -2,17 +2,20 @@ import React, { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getPrograms } from "../hooks/get-programs";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { AnchorProvider, BN } from "@coral-xyz/anchor";
-import { Buffer } from "buffer";
+import { BN } from "@coral-xyz/anchor";
+
+const LAMPORTS_PER_SOL = 1_000_000_000;
 
 const CreateExperienceForm = () => {
   const { publicKey, wallet } = useWallet();
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [price, setPrice] = useState("");
+  const [priceInSol, setPriceInSol] = useState(""); // Keep input in SOL
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
+    const encoder = new TextEncoder();
     e.preventDefault();
     if (!wallet || !publicKey) return alert("Connect your wallet");
 
@@ -22,18 +25,31 @@ const CreateExperienceForm = () => {
       const program = getPrograms(wallet);
 
       const [experiencePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("experience"), publicKey.toBuffer(), Buffer.from(title)],
+        [
+          encoder.encode("experience"),
+          publicKey.toBuffer(),
+          encoder.encode(title),
+        ],
         program.programId
       );
 
+      // Convert SOL to lamports
+      const priceLamports = new BN(parseFloat(priceInSol) * LAMPORTS_PER_SOL);
+
       await program.methods
-        .createExperience(title, location, new BN(price)) // You must match instruction args
-        .accounts({
+        .createExperience(title, location, description, priceLamports)
+        .accountsStrict({
           organiser: publicKey,
+          experience: experiencePDA,
+          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
       alert("Experience created!");
+      setTitle("");
+      setDescription("");
+      setLocation("");
+      setPriceInSol("");
     } catch (error) {
       console.error("Error creating experience:", error);
       alert("Failed to create experience");
@@ -59,10 +75,18 @@ const CreateExperienceForm = () => {
         required
       />
       <input
+        type="text"
+        placeholder="Location"
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        required
+      />
+      <input
         type="number"
-        placeholder="Price (lamports)"
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        placeholder="Price in SOL"
+        value={priceInSol}
+        onChange={(e) => setPriceInSol(e.target.value)}
+        step="0.01"
         required
       />
       <button type="submit" disabled={loading}>

@@ -12,7 +12,7 @@ contract = "Bby1nh85EANJJLoZnYpkofnvHX4hspQacwaBiMK9GcHJ"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

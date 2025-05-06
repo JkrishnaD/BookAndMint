@@ -732,6 +732,10 @@ export type Contract = {
           {
             "name": "priceLamports",
             "type": "u64"
+          },
+          {
+            "name": "cancelationFeePercent",
+            "type": "u64"
           }
         ]
       }
@@ -804,6 +808,10 @@ export type Contract = {
           {
             "name": "reservation",
             "type": "pubkey"
+          },
+          {
+            "name": "cancellationFee",
+            "type": "u64"
           }
         ]
       }

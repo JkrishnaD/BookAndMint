@@ -152,32 +152,54 @@ pub mod contract {
     pub fn cancel_reservation(ctx: Context<CancelReservation>) -> Result<()> {
         let reservation = &mut ctx.accounts.reservation;
         let slot = &mut ctx.accounts.slot;
-
-        require!(reservation.is_active, ErrorCode::InvalidTimeSlot);
+        let experience = &ctx.accounts.experience;
+        
+        require!(reservation.is_active, ErrorCode::InvalidReservation);
         require_keys_eq!(reservation.user, ctx.accounts.user.key(), ErrorCode::Unauthorized);
-
-        slot.is_booked = false;
-        reservation.is_active = false;
-
+    
+        // calculate cancellation fee (percentage of the price)
+        let cancellation_fee = experience.price_lamports * experience.cancelation_fee_percent / 100;
+        let refund_amount = experience.price_lamports - cancellation_fee;
+    
+        // refund to user after deducting cancellation fee
         invoke(
             &system_instruction::transfer(
-                &&ctx.accounts.experience.organiser.key(),
+                &experience.organiser.key(),
                 &ctx.accounts.user.key(),
-                ctx.accounts.experience.price_lamports
+                refund_amount
             ),
             &[
-                ctx.accounts.experience.to_account_info(),
+                experience.to_account_info(),
                 ctx.accounts.user.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ]
         )?;
-
+    
+        // transfer the cancellation fee to the organizer
+        invoke(
+            &system_instruction::transfer(
+                &ctx.accounts.user.key(),
+                &experience.organiser.key(),
+                cancellation_fee
+            ),
+            &[
+                ctx.accounts.user.to_account_info(),
+                experience.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ]
+        )?;
+    
+        slot.is_booked = false;
+        reservation.is_active = false;
+    
         emit!(ReservationCancelled {
             user: ctx.accounts.user.key(),
             reservation: reservation.key(),
+            cancellation_fee,
         });
         Ok(())
     }
+    
 
     pub fn update_reservation(ctx: Context<UpdateReservation>, new_start_time: i64) -> Result<()> {
         let reservation = &mut ctx.accounts.reservation;
@@ -353,7 +375,7 @@ pub struct UpdateReservation<'info> {
         seeds = [b"reservation", experience.key().as_ref(), current_start_time.to_le_bytes().as_ref()],
         bump,
         has_one = user,
-        constraint = reservation.is_active == true
+        constraint = reservation.is_active == true,
     )]
     pub reservation: Account<'info, Reservation>,
 
@@ -372,6 +394,7 @@ pub struct UpdateReservation<'info> {
     pub new_slot: Account<'info, TimeSlotAccount>,
 }
 
+
 #[account]
 pub struct Experience {
     pub organiser: Pubkey,
@@ -379,13 +402,14 @@ pub struct Experience {
     pub description: String,
     pub location: Option<String>,
     pub price_lamports: u64,
+    pub cancelation_fee_percent:u64,
 }
 
 impl Experience {
     pub const MAX_TITLE_LEN: usize = 32;
     pub const MAX_LOCATION_LEN: usize = 64;
     pub const MAX_DESCRIPTION_LEN: usize = 256;
-
+    pub const MAX_CANCELATION_FEE: u8 = 100; // 100% max
     pub const LEN: usize =
         8 + // discriminator
         32 + // organiser
@@ -396,7 +420,8 @@ impl Experience {
         1 +
         4 +
         Self::MAX_LOCATION_LEN + // Option<String>
-        8; // price_lamports
+        8 + // price_lamports
+        8; // cancellation_fee_percent
 }
 
 #[account]
@@ -468,6 +493,7 @@ pub struct ReservationCreated {
 pub struct ReservationCancelled {
     pub user: Pubkey,
     pub reservation: Pubkey,
+    pub cancellation_fee: u64,
 }
 
 // event for reservation update

@@ -726,6 +726,10 @@
           {
             "name": "price_lamports",
             "type": "u64"
+          },
+          {
+            "name": "cancelation_fee_percent",
+            "type": "u64"
           }
         ]
       }
@@ -798,6 +802,10 @@
           {
             "name": "reservation",
             "type": "pubkey"
+          },
+          {
+            "name": "cancellation_fee",
+            "type": "u64"
           }
         ]
       }

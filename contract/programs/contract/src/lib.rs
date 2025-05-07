@@ -15,20 +15,18 @@ pub mod contract {
 
     pub fn book_slot(ctx: Context<BookSlot>, start_time: i64) -> Result<()> {
         let experience_key = ctx.accounts.experience.key();
-        let experience_cost = ctx.accounts.experience.price_lamports;
+        let _experience_cost = ctx.accounts.experience.price_lamports;
         let slot = &mut ctx.accounts.slot;
+        let slot_price = slot.price;
 
         require!(!slot.is_booked, ErrorCode::AlreadyBooked);
-        require!(
-            **ctx.accounts.user.lamports.borrow() >= experience_cost,
-            ErrorCode::InsufficientFunds
-        );
+        require!(**ctx.accounts.user.lamports.borrow() >= slot_price, ErrorCode::InsufficientFunds);
 
         invoke(
             &system_instruction::transfer(
                 &ctx.accounts.user.key(),
                 &ctx.accounts.organiser.key(),
-                experience_cost
+                slot_price
             ),
             &[
                 ctx.accounts.user.to_account_info(),
@@ -122,7 +120,10 @@ pub mod contract {
         let experience = &mut ctx.accounts.experience;
 
         require!(title.len() <= Experience::MAX_TITLE_LEN, ErrorCode::TitleTooLong);
+        require!(title.len() > 0, ErrorCode::TitleEmpty);
         require!(location.len() <= Experience::MAX_LOCATION_LEN, ErrorCode::LocationTooLong);
+        require!(location.len() > 0, ErrorCode::LocationEmpty);
+        require!(price_lamports > 0, ErrorCode::InvalidPrice);
 
         experience.organiser = ctx.accounts.organiser.key();
         experience.title = title;
@@ -140,12 +141,26 @@ pub mod contract {
     }
 
     // function to add a time slot to an experience
-    pub fn add_time_slot(ctx: Context<AddTimeSlot>, start_time: i64, end_time: i64) -> Result<()> {
+    pub fn add_time_slot(
+        ctx: Context<AddTimeSlot>,
+        start_time: i64,
+        end_time: i64,
+        price: u64
+    ) -> Result<()> {
         let slot = &mut ctx.accounts.slot;
+
+        require!(start_time < end_time, ErrorCode::InvalidTimeSlot);
+        require!(price > 0, ErrorCode::InvalidPrice);
+
+        // Add current time validation
+        let current_time = Clock::get()?.unix_timestamp;
+        require!(start_time > current_time, ErrorCode::InvalidTimeSlot);
+
         slot.experience = ctx.accounts.experience.key();
         slot.start_time = start_time;
         slot.end_time = end_time;
         slot.is_booked = false;
+        slot.price = price;
         Ok(())
     }
 
@@ -153,14 +168,26 @@ pub mod contract {
         let reservation = &mut ctx.accounts.reservation;
         let slot = &mut ctx.accounts.slot;
         let experience = &ctx.accounts.experience;
-        
+
+        // check if the reservation is too late to cancel
+        let current_time = Clock::get()?.unix_timestamp;
+        let minimum_notice_period = 24 * 60 * 60; // 24 hours in seconds
+        require!(
+            slot.start_time - current_time >= minimum_notice_period,
+            ErrorCode::TooLateToCancel
+        );
+
         require!(reservation.is_active, ErrorCode::InvalidReservation);
         require_keys_eq!(reservation.user, ctx.accounts.user.key(), ErrorCode::Unauthorized);
-    
+
         // calculate cancellation fee (percentage of the price)
-        let cancellation_fee = experience.price_lamports * experience.cancelation_fee_percent / 100;
-        let refund_amount = experience.price_lamports - cancellation_fee;
-    
+        let cancellation_fee = (slot.price as u128)
+            .checked_mul(experience.cancelation_fee_percent as u128)
+            .unwrap()
+            .checked_div(100)
+            .unwrap() as u64;
+        let refund_amount = slot.price - cancellation_fee;
+
         // refund to user after deducting cancellation fee
         invoke(
             &system_instruction::transfer(
@@ -174,7 +201,7 @@ pub mod contract {
                 ctx.accounts.system_program.to_account_info(),
             ]
         )?;
-    
+
         // transfer the cancellation fee to the organizer
         invoke(
             &system_instruction::transfer(
@@ -188,10 +215,10 @@ pub mod contract {
                 ctx.accounts.system_program.to_account_info(),
             ]
         )?;
-    
+
         slot.is_booked = false;
         reservation.is_active = false;
-    
+
         emit!(ReservationCancelled {
             user: ctx.accounts.user.key(),
             reservation: reservation.key(),
@@ -199,7 +226,6 @@ pub mod contract {
         });
         Ok(())
     }
-    
 
     pub fn update_reservation(ctx: Context<UpdateReservation>, new_start_time: i64) -> Result<()> {
         let reservation = &mut ctx.accounts.reservation;
@@ -394,7 +420,6 @@ pub struct UpdateReservation<'info> {
     pub new_slot: Account<'info, TimeSlotAccount>,
 }
 
-
 #[account]
 pub struct Experience {
     pub organiser: Pubkey,
@@ -402,7 +427,7 @@ pub struct Experience {
     pub description: String,
     pub location: Option<String>,
     pub price_lamports: u64,
-    pub cancelation_fee_percent:u64,
+    pub cancelation_fee_percent: u64,
 }
 
 impl Experience {
@@ -430,6 +455,7 @@ pub struct TimeSlotAccount {
     pub start_time: i64,
     pub end_time: i64,
     pub is_booked: bool,
+    pub price: u64,
 }
 
 impl TimeSlotAccount {
@@ -469,6 +495,16 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Reservation already cancelled")]
     AlreadyCancelled,
+    #[msg("Invalid price - must be greater than 0")]
+    InvalidPrice,
+    #[msg("Title cannot be empty")]
+    TitleEmpty,
+    #[msg("Location cannot be empty")]
+    LocationEmpty,
+    #[msg("Time slot overlaps with existing slots")]
+    OverlappingTimeSlot,
+    #[msg("Too late to cancel reservation")]
+    TooLateToCancel,
 }
 
 // event for experience creation

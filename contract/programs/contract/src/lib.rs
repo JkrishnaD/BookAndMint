@@ -152,9 +152,18 @@ pub mod contract {
         require!(start_time < end_time, ErrorCode::InvalidTimeSlot);
         require!(price > 0, ErrorCode::InvalidPrice);
 
-        // Add current time validation
+        // adding the current time validation
         let current_time = Clock::get()?.unix_timestamp;
         require!(start_time > current_time, ErrorCode::InvalidTimeSlot);
+
+        // checking for overlapping slots
+        let existing_slots = &ctx.accounts.experience.time_slots;
+        for slot in existing_slots {
+            if (start_time >= slot.start_time && start_time < slot.end_time) ||
+               (end_time > slot.start_time && end_time <= slot.end_time) {
+                return Err(ErrorCode::OverlappingTimeSlot.into());
+            }
+        }
 
         slot.experience = ctx.accounts.experience.key();
         slot.start_time = start_time;
@@ -428,6 +437,7 @@ pub struct Experience {
     pub location: Option<String>,
     pub price_lamports: u64,
     pub cancelation_fee_percent: u64,
+    pub time_slots: Vec<TimeSlotAccount>,
 }
 
 impl Experience {

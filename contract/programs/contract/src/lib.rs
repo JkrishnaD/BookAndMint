@@ -1,3 +1,4 @@
+mod nft_metadata;
 use anchor_lang::prelude::*;
 use anchor_spl::{ associated_token::AssociatedToken, token::{ Mint, Token, TokenAccount } };
 
@@ -59,10 +60,10 @@ pub mod contract {
             share: 100,
         }];
 
-        let metadata_uri = format!(
-            "https://your-storage.com/nfts/{}/slot_{}.json",
-            experience_key,
-            start_time
+        let metadata_uri = nft_metadata::create_metadata(
+            &ctx.accounts.experience,
+            slot.start_time,
+            slot.end_time,
         );
 
         let ix = CreateV1Builder::new()
@@ -75,7 +76,7 @@ pub mod contract {
             .spl_token_program(Some(ctx.accounts.token_program.key()))
             .sysvar_instructions(anchor_lang::solana_program::sysvar::instructions::ID)
             .name(ctx.accounts.experience.title.clone())
-            .symbol(ctx.accounts.experience.location.clone().unwrap()) // since it is optional we use unwrap
+            .symbol(ctx.accounts.experience.location.clone().unwrap_or_default())
             .uri(metadata_uri)
             .seller_fee_basis_points(0)
             .creators(creators)

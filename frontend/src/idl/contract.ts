@@ -76,6 +76,10 @@ export type Contract = {
         {
           "name": "endTime",
           "type": "i64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -703,6 +707,31 @@ export type Contract = {
       "code": 6007,
       "name": "alreadyCancelled",
       "msg": "Reservation already cancelled"
+    },
+    {
+      "code": 6008,
+      "name": "invalidPrice",
+      "msg": "Invalid price - must be greater than 0"
+    },
+    {
+      "code": 6009,
+      "name": "titleEmpty",
+      "msg": "Title cannot be empty"
+    },
+    {
+      "code": 6010,
+      "name": "locationEmpty",
+      "msg": "Location cannot be empty"
+    },
+    {
+      "code": 6011,
+      "name": "overlappingTimeSlot",
+      "msg": "Time slot overlaps with existing slots"
+    },
+    {
+      "code": 6012,
+      "name": "tooLateToCancel",
+      "msg": "Too late to cancel reservation"
     }
   ],
   "types": [
@@ -736,6 +765,16 @@ export type Contract = {
           {
             "name": "cancelationFeePercent",
             "type": "u64"
+          },
+          {
+            "name": "timeSlots",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "timeSlotAccount"
+                }
+              }
+            }
           }
         ]
       }
@@ -880,6 +919,10 @@ export type Contract = {
           {
             "name": "isBooked",
             "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
           }
         ]
       }

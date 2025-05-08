@@ -70,6 +70,10 @@
         {
           "name": "end_time",
           "type": "i64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -697,6 +701,31 @@
       "code": 6007,
       "name": "AlreadyCancelled",
       "msg": "Reservation already cancelled"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidPrice",
+      "msg": "Invalid price - must be greater than 0"
+    },
+    {
+      "code": 6009,
+      "name": "TitleEmpty",
+      "msg": "Title cannot be empty"
+    },
+    {
+      "code": 6010,
+      "name": "LocationEmpty",
+      "msg": "Location cannot be empty"
+    },
+    {
+      "code": 6011,
+      "name": "OverlappingTimeSlot",
+      "msg": "Time slot overlaps with existing slots"
+    },
+    {
+      "code": 6012,
+      "name": "TooLateToCancel",
+      "msg": "Too late to cancel reservation"
     }
   ],
   "types": [
@@ -730,6 +759,16 @@
           {
             "name": "cancelation_fee_percent",
             "type": "u64"
+          },
+          {
+            "name": "time_slots",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "TimeSlotAccount"
+                }
+              }
+            }
           }
         ]
       }
@@ -874,6 +913,10 @@
           {
             "name": "is_booked",
             "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
           }
         ]
       }

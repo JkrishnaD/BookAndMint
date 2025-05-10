@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/contract.json`.
  */
 export type Contract = {
-  "address": "Bby1nh85EANJJLoZnYpkofnvHX4hspQacwaBiMK9GcHJ",
+  "address": "CsFsWk5NwBuo7bGbryvyujzrtMnz6458EphQ5xytMMpM",
   "metadata": {
     "name": "contract",
     "version": "0.1.0",
@@ -164,101 +164,19 @@ export type Contract = {
         },
         {
           "name": "mint",
-          "writable": true,
-          "signer": true
+          "writable": true
         },
         {
           "name": "userNftAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "user"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
+          "writable": true
         },
         {
-          "name": "organiser"
+          "name": "organiser",
+          "writable": true
+        },
+        {
+          "name": "masterEdition",
+          "writable": true
         },
         {
           "name": "tokenProgram",
@@ -269,6 +187,14 @@ export type Contract = {
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
           "name": "metadata",
           "writable": true
         },
@@ -276,15 +202,7 @@ export type Contract = {
           "name": "metadataProgram"
         },
         {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        },
-        {
           "name": "sysvarInstructions"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
@@ -725,8 +643,8 @@ export type Contract = {
     },
     {
       "code": 6011,
-      "name": "overlappingTimeSlot",
-      "msg": "Time slot overlaps with existing slots"
+      "name": "tooManyTimeSlots",
+      "msg": "Maximum number of time slots reached"
     },
     {
       "code": 6012,
@@ -767,14 +685,8 @@ export type Contract = {
             "type": "u64"
           },
           {
-            "name": "timeSlots",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "timeSlotAccount"
-                }
-              }
-            }
+            "name": "timeSlotCount",
+            "type": "u8"
           }
         ]
       }

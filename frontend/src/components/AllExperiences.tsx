@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getPrograms } from "../hooks/get-programs";
+import { Link } from "react-router-dom";
 
 const AllExperiences = () => {
   const { publicKey, wallet } = useWallet();
@@ -46,26 +47,28 @@ const AllExperiences = () => {
             const sol = (Number(lamports) / 1_000_000_000).toFixed(2);
 
             return (
-              <li
-                key={idx}
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: "8px",
-                  padding: "12px",
-                  marginBottom: "10px",
-                }}
-              >
-                <h3>{title}</h3>
-                <p>
-                  <strong>Location:</strong> {location}
-                </p>
-                <p>
-                  <strong>Description:</strong> {description}
-                </p>
-                <p>
-                  <strong>Price:</strong> {sol} SOL
-                </p>
-              </li>
+              <Link to={`/experience/${exp.publicKey.toBase58()}`} key={idx}>
+                <li
+                  style={{
+                    border: "1px solid #ccc",
+                    borderRadius: "8px",
+                    padding: "12px",
+                    marginBottom: "10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <h3>{title}</h3>
+                  <p>
+                    <strong>Location:</strong> {location}
+                  </p>
+                  <p>
+                    <strong>Description:</strong> {description}
+                  </p>
+                  <p>
+                    <strong>Price:</strong> {sol} SOL
+                  </p>
+                </li>
+              </Link>
             );
           })}
         </ul>

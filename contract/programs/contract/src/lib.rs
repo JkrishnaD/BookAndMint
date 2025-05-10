@@ -1,28 +1,29 @@
 mod nft_metadata;
 use anchor_lang::prelude::*;
-use anchor_spl::{ associated_token::AssociatedToken, token::{ Mint, Token, TokenAccount } };
+use anchor_spl::{ associated_token::AssociatedToken, token::{ Token, spl_token } };
+mod build_metadata;
 
-declare_id!("Bby1nh85EANJJLoZnYpkofnvHX4hspQacwaBiMK9GcHJ");
+declare_id!("CsFsWk5NwBuo7bGbryvyujzrtMnz6458EphQ5xytMMpM");
 
 #[program]
 pub mod contract {
     use anchor_lang::solana_program::program::{ invoke, invoke_signed };
     use anchor_lang::solana_program::system_instruction::{ self };
     use anchor_spl::token::{ mint_to, MintTo };
-    use mpl_token_metadata::instructions::CreateV1Builder;
-    use mpl_token_metadata::types::{ Creator, TokenStandard };
+
+    use crate::build_metadata::build_metadata_ix;
 
     use super::*;
 
     pub fn book_slot(ctx: Context<BookSlot>, start_time: i64) -> Result<()> {
         let experience_key = ctx.accounts.experience.key();
-        let _experience_cost = ctx.accounts.experience.price_lamports;
         let slot = &mut ctx.accounts.slot;
         let slot_price = slot.price;
 
         require!(!slot.is_booked, ErrorCode::AlreadyBooked);
         require!(**ctx.accounts.user.lamports.borrow() >= slot_price, ErrorCode::InsufficientFunds);
 
+        // Transfer payment to organiser
         invoke(
             &system_instruction::transfer(
                 &ctx.accounts.user.key(),
@@ -38,6 +39,7 @@ pub mod contract {
 
         slot.is_booked = true;
 
+        // Set reservation fields
         let reservation = &mut ctx.accounts.reservation;
         reservation.experience_id = experience_key;
         reservation.user = ctx.accounts.user.key();
@@ -47,6 +49,55 @@ pub mod contract {
         reservation.end_time = slot.end_time;
         reservation.is_active = true;
 
+        // Mint account creation
+        let mint_rent = Rent::get()?.minimum_balance(82);
+        invoke(
+            &system_instruction::create_account(
+                &ctx.accounts.user.key(),
+                &ctx.accounts.mint.key(),
+                mint_rent,
+                82,
+                &ctx.accounts.token_program.key()
+            ),
+            &[
+                ctx.accounts.user.to_account_info(),
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ]
+        )?;
+
+        // Initialize mint
+        let mint_ix = spl_token::instruction::initialize_mint(
+            &ctx.accounts.token_program.key(),
+            &ctx.accounts.mint.key(),
+            &ctx.accounts.user.key(),
+            Some(&ctx.accounts.user.key()),
+            0
+        )?;
+        invoke(
+            &mint_ix,
+            &[
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.rent.to_account_info(),
+            ]
+        )?;
+
+        // Create ATA (associated token account)
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.associated_token_program.to_account_info(),
+            anchor_spl::associated_token::Create {
+                payer: ctx.accounts.user.to_account_info(),
+                associated_token: ctx.accounts.user_nft_account.to_account_info(),
+                authority: ctx.accounts.user.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                token_program: ctx.accounts.token_program.to_account_info(),
+            }
+        );
+        anchor_spl::associated_token::create(cpi_ctx)?;
+
+        // Mint 1 token (NFT)
         let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), MintTo {
             mint: ctx.accounts.mint.to_account_info(),
             to: ctx.accounts.user_nft_account.to_account_info(),
@@ -54,35 +105,15 @@ pub mod contract {
         });
         mint_to(cpi_ctx, 1)?;
 
-        let creators = vec![Creator {
-            address: ctx.accounts.user.key(),
-            verified: true,
-            share: 100,
-        }];
-
-        let metadata_uri = nft_metadata::create_metadata(
+        // ✅ Use lightweight URI instead of full inline JSON
+        let metadata_uri = nft_metadata::create_metadata_uri(
             &ctx.accounts.experience,
             slot.start_time,
-            slot.end_time,
+            slot.end_time
         );
 
-        let ix = CreateV1Builder::new()
-            .metadata(ctx.accounts.metadata.key().into())
-            .mint(ctx.accounts.mint.key(), true)
-            .payer(ctx.accounts.user.key())
-            .update_authority(ctx.accounts.user.key(), true)
-            .authority(ctx.accounts.user.key())
-            .system_program(ctx.accounts.system_program.key())
-            .spl_token_program(Some(ctx.accounts.token_program.key()))
-            .sysvar_instructions(anchor_lang::solana_program::sysvar::instructions::ID)
-            .name(ctx.accounts.experience.title.clone())
-            .symbol(ctx.accounts.experience.location.clone().unwrap_or_default())
-            .uri(metadata_uri)
-            .seller_fee_basis_points(0)
-            .creators(creators)
-            .is_mutable(true)
-            .token_standard(TokenStandard::NonFungible)
-            .instruction();
+        let symbol = ctx.accounts.experience.title.chars().take(10).collect::<String>();
+        let ix = build_metadata_ix(&ctx, metadata_uri, symbol);
 
         invoke_signed(
             &ix,
@@ -96,8 +127,9 @@ pub mod contract {
                 ctx.accounts.token_program.to_account_info(),
                 ctx.accounts.rent.to_account_info(),
                 ctx.accounts.sysvar_instructions.to_account_info(),
+                ctx.accounts.master_edition.to_account_info(),
             ],
-            &[]
+            &[] // Optional: seeds if authority is PDA
         )?;
 
         emit!(ReservationCreated {
@@ -149,28 +181,31 @@ pub mod contract {
         price: u64
     ) -> Result<()> {
         let slot = &mut ctx.accounts.slot;
+        let experience = &mut ctx.accounts.experience;
 
         require!(start_time < end_time, ErrorCode::InvalidTimeSlot);
         require!(price > 0, ErrorCode::InvalidPrice);
+        require!(
+            experience.time_slot_count < Experience::MAX_TIME_SLOTS,
+            ErrorCode::TooManyTimeSlots
+        );
 
         // adding the current time validation
         let current_time = Clock::get()?.unix_timestamp;
         require!(start_time > current_time, ErrorCode::InvalidTimeSlot);
 
-        // checking for overlapping slots
-        let existing_slots = &ctx.accounts.experience.time_slots;
-        for slot in existing_slots {
-            if (start_time >= slot.start_time && start_time < slot.end_time) ||
-               (end_time > slot.start_time && end_time <= slot.end_time) {
-                return Err(ErrorCode::OverlappingTimeSlot.into());
-            }
-        }
-
-        slot.experience = ctx.accounts.experience.key();
+        // Initialize the new slot
+        slot.experience = experience.key();
         slot.start_time = start_time;
         slot.end_time = end_time;
         slot.is_booked = false;
         slot.price = price;
+
+        // Increment the time slot count
+        experience.time_slot_count = experience.time_slot_count
+            .checked_add(1)
+            .ok_or(ErrorCode::TooManyTimeSlots)?;
+
         Ok(())
     }
 
@@ -280,7 +315,8 @@ pub struct BookSlot<'info> {
     #[account(
         mut,
         seeds = [b"slot", experience.key().as_ref(), start_time.to_le_bytes().as_ref()],
-        bump
+        bump,
+        constraint = !slot.is_booked @ ErrorCode::AlreadyBooked
     )]
     pub slot: Account<'info, TimeSlotAccount>,
 
@@ -293,26 +329,26 @@ pub struct BookSlot<'info> {
     )]
     pub reservation: Account<'info, Reservation>,
 
-    #[account(
-        init,
-        payer = user,
-        mint::decimals = 0,
-        mint::authority = user,
-        mint::freeze_authority = user
-    )]
-    pub mint: Account<'info, Mint>,
+    /// CHECK: This is the mint account that will be initialized
+    #[account(mut)]
+    pub mint: UncheckedAccount<'info>,
 
-    #[account(
-        init_if_needed,
-        payer = user,
-        associated_token::mint = mint,
-        associated_token::authority = user
-    )]
-    pub user_nft_account: Account<'info, TokenAccount>,
+    /// CHECK: This is the user's NFT account that will be created
+    #[account(mut)]
+    pub user_nft_account: UncheckedAccount<'info>,
 
-    pub organiser: SystemAccount<'info>,
+    /// CHECK: This is the organiser's account
+    #[account(mut)]
+    pub organiser: AccountInfo<'info>,
+
+    /// CHECK: Metaplex validates this PDA internally
+    #[account(mut)]
+    pub master_edition: UncheckedAccount<'info>,
+
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 
     /// CHECK: Safe, Metaplex metadata account
     #[account(mut)]
@@ -321,11 +357,8 @@ pub struct BookSlot<'info> {
     /// CHECK: Safe, Metaplex program
     pub metadata_program: UncheckedAccount<'info>,
 
-    pub system_program: Program<'info, System>,
-
-    /// CHECK: Instruction sysvar
+    /// CHECK: Required for Metaplex CPI
     pub sysvar_instructions: UncheckedAccount<'info>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
 // context for creating an experience
@@ -431,6 +464,25 @@ pub struct UpdateReservation<'info> {
 }
 
 #[account]
+pub struct TimeSlotAccount {
+    pub experience: Pubkey,
+    pub start_time: i64,
+    pub end_time: i64,
+    pub is_booked: bool,
+    pub price: u64,
+}
+
+impl TimeSlotAccount {
+    pub const LEN: usize =
+        8 + // discriminator
+        32 + // experience (Pubkey)
+        8 + // start_time (i64)
+        8 + // end_time (i64)
+        1 + // is_booked (bool)
+        8; // price (u64)
+}
+
+#[account]
 pub struct Experience {
     pub organiser: Pubkey,
     pub title: String,
@@ -438,14 +490,15 @@ pub struct Experience {
     pub location: Option<String>,
     pub price_lamports: u64,
     pub cancelation_fee_percent: u64,
-    pub time_slots: Vec<TimeSlotAccount>,
+    pub time_slot_count: u8, // Track number of time slots
 }
 
 impl Experience {
-    pub const MAX_TITLE_LEN: usize = 32;
-    pub const MAX_LOCATION_LEN: usize = 64;
-    pub const MAX_DESCRIPTION_LEN: usize = 256;
-    pub const MAX_CANCELATION_FEE: u8 = 100; // 100% max
+    pub const MAX_TITLE_LEN: usize = 24;
+    pub const MAX_LOCATION_LEN: usize = 48;
+    pub const MAX_DESCRIPTION_LEN: usize = 128;
+    pub const MAX_CANCELATION_FEE: u8 = 100;
+    pub const MAX_TIME_SLOTS: u8 = 10; // Maximum number of time slots allowed
     pub const LEN: usize =
         8 + // discriminator
         32 + // organiser
@@ -457,20 +510,8 @@ impl Experience {
         4 +
         Self::MAX_LOCATION_LEN + // Option<String>
         8 + // price_lamports
-        8; // cancellation_fee_percent
-}
-
-#[account]
-pub struct TimeSlotAccount {
-    pub experience: Pubkey,
-    pub start_time: i64,
-    pub end_time: i64,
-    pub is_booked: bool,
-    pub price: u64,
-}
-
-impl TimeSlotAccount {
-    pub const LEN: usize = 32 + 8 + 8 + 1;
+        8 + // cancellation_fee_percent
+        1; // time_slot_count
 }
 
 #[account]
@@ -512,8 +553,8 @@ pub enum ErrorCode {
     TitleEmpty,
     #[msg("Location cannot be empty")]
     LocationEmpty,
-    #[msg("Time slot overlaps with existing slots")]
-    OverlappingTimeSlot,
+    #[msg("Maximum number of time slots reached")]
+    TooManyTimeSlots,
     #[msg("Too late to cancel reservation")]
     TooLateToCancel,
 }

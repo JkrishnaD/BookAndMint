@@ -19,6 +19,8 @@ import AllExperiences from "./components/AllExperiences";
 import CreateExperience from "./components/createExperience";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
+import ExperiencePage from "./pages/ExperiencePage";
+import { Toaster } from "sonner";
 
 const App = () => {
   const network = "devnet";
@@ -32,6 +34,7 @@ const App = () => {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
+        <Toaster position="top-right" richColors />
           <Router>
             <div style={{ padding: "20px" }}>
               <WalletMultiButton />
@@ -44,6 +47,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<AllExperiences />} />
                 <Route path="/create" element={<CreateExperience />} />
+                <Route path="/experience/:pubkey" element={<ExperiencePage/>}/>
               </Routes>
             </div>
           </Router>

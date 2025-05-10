@@ -10,6 +10,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
+import { Loader } from "lucide-react";
 
 interface BookSlotProps {
   slot: TimeSlot;
@@ -139,80 +140,87 @@ const BookSlot = ({
         })
         .transaction();
 
-      const { blockhash } =
-        await program.provider.connection.getLatestBlockhash();
+      // Get a fresh blockhash with commitment
+      const { blockhash, lastValidBlockHeight } = await program.provider.connection.getLatestBlockhash('finalized');
       tx.recentBlockhash = blockhash;
       tx.feePayer = publicKey;
 
+      // Sign the transaction
       tx.sign(mintKeypair);
 
       if (!program.provider?.sendAndConfirm) {
         throw new Error("Program provider is not properly initialized");
       }
-      const signature = await program.provider.sendAndConfirm(tx, [
-        mintKeypair,
-      ]);
-      console.log("Transaction signature:", signature);
 
+      // Send and confirm with commitment and timeout
+      const signature = await program.provider.sendAndConfirm(tx, [mintKeypair], {
+        commitment: 'finalized',
+        maxRetries: 3,
+        preflightCommitment: 'finalized',
+      });
+
+      // Verify the transaction was confirmed
+      const confirmation = await program.provider.connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight
+      }, 'finalized');
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+
+      console.log("Transaction signature:", signature);
       toast.success("Slot booked and NFT minted successfully!");
       if (onSuccess) onSuccess();
-    } catch (err) {
-      console.error("Error booking slot:", err.message);
-      if (err.logs) {
+    } catch (err: any) {
+      console.error("Error booking slot:", err);
+      
+      // Handle specific error cases
+      if (err.message?.includes("Blockhash not found")) {
+        toast.error("Transaction failed: Please try again");
+      } else if (err.message?.includes("insufficient funds")) {
+        toast.error("Insufficient funds to complete the transaction");
+      } else if (err.logs) {
         console.error("Transaction logs:", err.logs);
+        toast.error(err.message || "Transaction failed. Please try again.");
+      } else {
+        toast.error(err.message || "Booking failed. Please try again.");
       }
-      toast.error(err.message || "Booking failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Don't render anything if user is the organizer
+  if (publicKey?.toBase58() === organiserPubkey) {
+    return null;
+  }
+
   return (
     <button
       onClick={handleBookSlot}
-      disabled={
-        isLoading || slot.isBooked || publicKey?.toBase58() === organiserPubkey
-      }
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+      disabled={isLoading || slot.isBooked}
+      className={`rounded-lg font-medium transition-colors ${
         isLoading
           ? "bg-gray-300 cursor-not-allowed"
           : slot.isBooked
-          ? "bg-gray-300 cursor-not-allowed"
-          : publicKey?.toBase58() === organiserPubkey
           ? "bg-gray-300 cursor-not-allowed"
           : "bg-blue-600 hover:bg-blue-700 text-white"
       }`}
     >
       {isLoading ? (
         <div className="flex items-center gap-2">
-          <svg
+          <Loader
             className="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
+            size={16}
+          />
           Booking...
         </div>
       ) : slot.isBooked ? (
-        "Booked"
-      ) : publicKey?.toBase58() === organiserPubkey ? (
-        "Cannot Book Own Slot"
+        <span className="bg-green-500 text-white rounded-lg px-4 py-2">Booked</span>
       ) : (
-        "Book Slot"
+        <span className="bg-white text-green-500 rounded-lg px-4 py-2">Book Slot</span>
       )}
     </button>
   );

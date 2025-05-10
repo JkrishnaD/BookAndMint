@@ -582,68 +582,8 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidTimeSlot",
-      "msg": "Invalid time slot provided."
-    },
-    {
-      "code": 6001,
-      "name": "AlreadyBooked",
-      "msg": "The time slot is already booked."
-    },
-    {
-      "code": 6002,
-      "name": "InsufficientFunds",
-      "msg": "Insufficient funds"
-    },
-    {
-      "code": 6003,
-      "name": "TitleTooLong",
-      "msg": "Name is too long"
-    },
-    {
-      "code": 6004,
-      "name": "LocationTooLong",
-      "msg": "Location is too long"
-    },
-    {
-      "code": 6005,
-      "name": "InvalidReservation",
-      "msg": "Invalid reservation"
-    },
-    {
-      "code": 6006,
-      "name": "Unauthorized",
-      "msg": "Unauthorized"
-    },
-    {
-      "code": 6007,
-      "name": "AlreadyCancelled",
-      "msg": "Reservation already cancelled"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidPrice",
-      "msg": "Invalid price - must be greater than 0"
-    },
-    {
-      "code": 6009,
-      "name": "TitleEmpty",
-      "msg": "Title cannot be empty"
-    },
-    {
-      "code": 6010,
-      "name": "LocationEmpty",
-      "msg": "Location cannot be empty"
-    },
-    {
-      "code": 6011,
-      "name": "TooManyTimeSlots",
-      "msg": "Maximum number of time slots reached"
-    },
-    {
-      "code": 6012,
-      "name": "TooLateToCancel",
-      "msg": "Too late to cancel reservation"
+      "name": "MetadataCreationFailed",
+      "msg": "Failed to create metadata"
     }
   ],
   "types": [
@@ -829,6 +769,12 @@
           {
             "name": "price",
             "type": "u64"
+          },
+          {
+            "name": "booker",
+            "type": {
+              "option": "pubkey"
+            }
           }
         ]
       }

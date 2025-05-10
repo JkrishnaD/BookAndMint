@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+
+import "./index.css";
 import {
   ConnectionProvider,
   WalletProvider
@@ -13,6 +14,7 @@ import {
 } from "@solana/wallet-adapter-wallets";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
+import App from "./App";
 
 const wallets = [new PhantomWalletAdapter()];
 const network = "https://api.devnet.solana.com";

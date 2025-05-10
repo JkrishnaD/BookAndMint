@@ -588,68 +588,8 @@ export type Contract = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidTimeSlot",
-      "msg": "Invalid time slot provided."
-    },
-    {
-      "code": 6001,
-      "name": "alreadyBooked",
-      "msg": "The time slot is already booked."
-    },
-    {
-      "code": 6002,
-      "name": "insufficientFunds",
-      "msg": "Insufficient funds"
-    },
-    {
-      "code": 6003,
-      "name": "titleTooLong",
-      "msg": "Name is too long"
-    },
-    {
-      "code": 6004,
-      "name": "locationTooLong",
-      "msg": "Location is too long"
-    },
-    {
-      "code": 6005,
-      "name": "invalidReservation",
-      "msg": "Invalid reservation"
-    },
-    {
-      "code": 6006,
-      "name": "unauthorized",
-      "msg": "unauthorized"
-    },
-    {
-      "code": 6007,
-      "name": "alreadyCancelled",
-      "msg": "Reservation already cancelled"
-    },
-    {
-      "code": 6008,
-      "name": "invalidPrice",
-      "msg": "Invalid price - must be greater than 0"
-    },
-    {
-      "code": 6009,
-      "name": "titleEmpty",
-      "msg": "Title cannot be empty"
-    },
-    {
-      "code": 6010,
-      "name": "locationEmpty",
-      "msg": "Location cannot be empty"
-    },
-    {
-      "code": 6011,
-      "name": "tooManyTimeSlots",
-      "msg": "Maximum number of time slots reached"
-    },
-    {
-      "code": 6012,
-      "name": "tooLateToCancel",
-      "msg": "Too late to cancel reservation"
+      "name": "metadataCreationFailed",
+      "msg": "Failed to create metadata"
     }
   ],
   "types": [
@@ -835,6 +775,12 @@ export type Contract = {
           {
             "name": "price",
             "type": "u64"
+          },
+          {
+            "name": "booker",
+            "type": {
+              "option": "pubkey"
+            }
           }
         ]
       }

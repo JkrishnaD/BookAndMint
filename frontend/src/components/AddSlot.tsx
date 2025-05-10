@@ -140,7 +140,7 @@ const AddSlotModal = ({ experiencePubkey, onClose }: AddSlotModalProps) => {
           <div className="space-y-5">
             {/* Start Time */}
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
+              <label className="text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
                 Start Time
               </label>
@@ -158,7 +158,7 @@ const AddSlotModal = ({ experiencePubkey, onClose }: AddSlotModalProps) => {
 
             {/* End Time */}
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
+              <label className="text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
                 End Time
               </label>
@@ -176,7 +176,7 @@ const AddSlotModal = ({ experiencePubkey, onClose }: AddSlotModalProps) => {
 
             {/* Price */}
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
+              <label className="text-sm font-medium text-purple-200 mb-2 flex items-center gap-1.5">
                 <Coins className="h-4 w-4" />
                 Price (in Lamports)
               </label>

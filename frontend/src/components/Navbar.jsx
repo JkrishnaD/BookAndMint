@@ -68,7 +68,7 @@ const Navbar = () => {
             <Link to="/create" className="block hover:bg-purple-700 px-3 py-2 rounded-md text-base font-medium">
               Create
             </Link>
-            <Link to="/profile" className="block hover:bg-purple-700 px-3 py-2 rounded-md text-base font-medium flex items-center gap-2">
+            <Link to="/profile" className="block hover:bg-purple-700 px-3 py-2 rounded-md text-base font-medium items-center gap-2">
               <User className="w-4 h-4" />
               Profile
             </Link>

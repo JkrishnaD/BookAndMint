@@ -38,6 +38,7 @@ pub mod contract {
         )?;
 
         slot.is_booked = true;
+        slot.booker = Some(ctx.accounts.user.key());
 
         // Set reservation fields
         let reservation = &mut ctx.accounts.reservation;
@@ -470,6 +471,7 @@ pub struct TimeSlotAccount {
     pub end_time: i64,
     pub is_booked: bool,
     pub price: u64,
+    pub booker: Option<Pubkey>,
 }
 
 impl TimeSlotAccount {
@@ -479,7 +481,9 @@ impl TimeSlotAccount {
         8 + // start_time (i64)
         8 + // end_time (i64)
         1 + // is_booked (bool)
-        8; // price (u64)
+        8 + // price (u64)
+        1 + // Option discriminator
+        32; // booker (Pubkey)
 }
 
 #[account]

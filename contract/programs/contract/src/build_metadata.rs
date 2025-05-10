@@ -1,4 +1,4 @@
-use anchor_lang::{ prelude::{Context, Pubkey}, solana_program::instruction::Instruction, Key };
+use anchor_lang::{ prelude::{ Context, Pubkey }, solana_program::instruction::Instruction, Key };
 use mpl_token_metadata::{
     instructions::{ CreateV1Builder },
     types::{ Creator, PrintSupply, TokenStandard },
@@ -11,7 +11,6 @@ pub fn build_metadata_ix(
     metadata_uri: String,
     symbol: String
 ) -> Instruction {
-
     let (master_edition, _bump) = Pubkey::find_program_address(
         &[
             b"metadata",
@@ -19,9 +18,9 @@ pub fn build_metadata_ix(
             ctx.accounts.mint.key().as_ref(),
             b"edition",
         ],
-        &mpl_token_metadata::ID,
+        &mpl_token_metadata::ID
     );
-    
+
     let creators = vec![Creator {
         address: ctx.accounts.user.key(),
         verified: true,
@@ -37,7 +36,7 @@ pub fn build_metadata_ix(
         .system_program(ctx.accounts.system_program.key())
         .spl_token_program(Some(ctx.accounts.token_program.key()))
         .sysvar_instructions(anchor_lang::solana_program::sysvar::instructions::ID)
-        .name(ctx.accounts.experience.title.clone())
+        .name(format!("{} Booking", ctx.accounts.experience.title))
         .symbol(symbol)
         .uri(metadata_uri)
         .seller_fee_basis_points(0)

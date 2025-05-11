@@ -164,6 +164,8 @@ pub mod contract {
         experience.description = description;
         experience.location = Some(location);
         experience.price_lamports = price_lamports;
+        experience.cancelation_fee_percent = 10; // Default 10% cancellation fee
+        experience.time_slot_count = 0; // Initialize with 0 time slots
 
         emit!(ExperienceCreated {
             organiser: ctx.accounts.organiser.key(),

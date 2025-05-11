@@ -23,7 +23,7 @@ const ExperienceDetails = ({
   onAddSlot,
 }: ExperienceDetailsProps) => {
   const { pubkey } = useParams();
-  const wallet = useWallet();
+  const { publicKey } = useWallet();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -34,12 +34,12 @@ const ExperienceDetails = ({
   }, []);
 
   const loadExperience = async () => {
-    if (!wallet.connected || !pubkey) return;
+    if (!publicKey || !pubkey) return;
 
     try {
       setLoading(true);
 
-      const program = getPrograms(wallet);
+      const program = getPrograms(publicKey);
       const experiencePubkey = new PublicKey(pubkey);
       const slotAccounts = await program.account.timeSlotAccount.all();
 
@@ -52,6 +52,7 @@ const ExperienceDetails = ({
           endTime: slot.account.endTime.toNumber(),
           isBooked: slot.account.isBooked,
           price: slot.account.price.toNumber(),
+          booker: slot.account.booker,
         }));
 
       setSlots(filteredSlots);
@@ -65,7 +66,7 @@ const ExperienceDetails = ({
 
   useEffect(() => {
     loadExperience();
-  }, [wallet, pubkey]);
+  }, [publicKey, pubkey]);
 
   const formatDate = (timestamp: number) => {
     try {
@@ -292,12 +293,14 @@ const ExperienceDetails = ({
                             >
                               {slot.isBooked ? "Booked" : "Available"}
                             </span>
-                            <BookSlot
-                              slot={slot}
-                              experiencePubkey={pubkey!}
-                              organiserPubkey={experience.organiser.toBase58()}
-                              onSuccess={loadExperience}
-                            />
+                            {!slot.isBooked && (
+                              <BookSlot
+                                slot={slot}
+                                experiencePubkey={pubkey!}
+                                organiserPubkey={experience.organiser.toBase58()}
+                                onSuccess={loadExperience}
+                              />
+                            )}
                           </div>
                         </div>
                       </motion.div>

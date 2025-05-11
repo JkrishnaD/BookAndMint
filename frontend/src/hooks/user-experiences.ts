@@ -9,6 +9,7 @@ export interface TimeSlot {
   endTime: number;
   isBooked: boolean;
   price: number;
+  booker: PublicKey | null;
 }
 
 export interface Experience {
@@ -44,6 +45,7 @@ export const fetchExperienceByPubkey = async (wallet: AnchorWallet, pubkey: stri
             endTime: slot.account.endTime.toNumber(),
             isBooked: slot.account.isBooked,
             price: slot.account.price.toNumber(),
+            booker: slot.account.booker,
         }));
 
         return {

@@ -10,6 +10,7 @@ import {
   Wallet,
   BookOpen,
   Plus,
+  ChevronLeft,
 } from "lucide-react";
 import { fetchUserProfile } from "../hooks/user-profile";
 import { Experience } from "../hooks/user-experiences";
@@ -112,7 +113,21 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-950 via-indigo-900 to-purple-900">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto">
+        {/* Back button */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Link
+            to="/experiences"
+            className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Experiences
+          </Link>
+        </motion.div>
+
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

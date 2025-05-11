@@ -11,9 +11,10 @@ import { Calendar, Clock, Coins, X, Loader2, Sparkles } from "lucide-react"
 interface AddSlotModalProps {
   experiencePubkey: string
   onClose: () => void
+  onSuccess?: () => void
 }
 
-const AddSlotModal = ({ experiencePubkey, onClose }: AddSlotModalProps) => {
+const AddSlotModal = ({ experiencePubkey, onClose, onSuccess }: AddSlotModalProps) => {
   const { publicKey, wallet } = useWallet()
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
@@ -86,8 +87,11 @@ const AddSlotModal = ({ experiencePubkey, onClose }: AddSlotModalProps) => {
         })
         .rpc()
 
-      toast.success("Time slot added successfully!")
+      toast.success("Time slot added refresh the page!")
       onClose()
+      if (onSuccess) {
+        onSuccess()
+      }
     } catch (err: any) {
       console.error("Error adding slot:", err)
       toast.error(err.message || "Failed to add slot. Please try again.")

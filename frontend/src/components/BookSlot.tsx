@@ -171,7 +171,7 @@ const BookSlot = ({
       }
 
       console.log("Transaction signature:", signature);
-      toast.success("Slot booked and NFT minted successfully!");
+      toast.success("Slot booked and NFT added to wallet!");
       if (onSuccess) onSuccess();
     } catch (err: any) {
       console.error("Error booking slot:", err);

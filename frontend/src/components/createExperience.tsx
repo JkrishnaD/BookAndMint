@@ -7,10 +7,11 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { getPrograms } from "../hooks/get-programs"
 import { toast } from "sonner"
 import { motion } from "motion/react"
-import { MapPin, Type, FileText, Coins, Sparkles, Loader2, AlertCircle, Check, ChevronRight } from "lucide-react"
+import { MapPin, Type, FileText, Coins, Sparkles, Loader2, AlertCircle, Check, ChevronRight, ChevronLeft } from "lucide-react"
 import confetti from "canvas-confetti"
 import { PublicKey, SystemProgram } from "@solana/web3.js"
 import BN from "bn.js"
+import { useNavigate, Link } from "react-router-dom"
 
 // Constants
 const LAMPORTS_PER_SOL = 1_000_000_000
@@ -20,6 +21,7 @@ const MAX_DESCRIPTION_LEN = 200
 
 export default function CreateExperienceForm() {
   const { publicKey, wallet, connected } = useWallet()
+  const navigate = useNavigate()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [location, setLocation] = useState("")
@@ -121,6 +123,9 @@ export default function CreateExperienceForm() {
       setPriceInSol("")
       setFormStep(0)
       setPreviewMode(false)
+
+      // Redirect to the experience page
+      navigate(`/experience/${experiencePDA.toString()}`)
     } catch (error: any) {
       console.error("Error creating experience:", error)
       if (error.logs) {
@@ -161,6 +166,21 @@ export default function CreateExperienceForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Back button */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-4 left-4 z-10"
+      >
+        <Link
+          to="/experiences"
+          className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Experiences
+        </Link>
+      </motion.div>
+
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 15 }).map((_, i) => (
